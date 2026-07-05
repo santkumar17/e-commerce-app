@@ -1,0 +1,162 @@
+{
+  "app_name": "ArtisanMarket",
+  "personality": "3 Editorial Mobile LIGHT",
+  "personality_one_liner": "A magazine-like, warm, and content-led experience that lets the craftsmanship and storytelling of handmade products take center stage.",
+  "color": {
+    "surface": "#FAF9F6",
+    "onSurface": "#1A1A1A",
+    "surfaceSecondary": "#FFFFFF",
+    "onSurfaceSecondary": "#1A1A1A",
+    "surfaceTertiary": "#F0EBE1",
+    "onSurfaceTertiary": "#4A453E",
+    "surfaceInverse": "#2B2927",
+    "onSurfaceInverse": "#FAF9F6",
+    "brand": "#B56A56",
+    "brandPrimary": "#B56A56",
+    "onBrandPrimary": "#FFFFFF",
+    "brandSecondary": "#D89E8A",
+    "onBrandSecondary": "#2B2927",
+    "brandTertiary": "#F4E3DD",
+    "onBrandTertiary": "#7A3E2E",
+    "success": "#6B8E6B",
+    "onSuccess": "#FFFFFF",
+    "warning": "#D4A373",
+    "onWarning": "#2B2927",
+    "error": "#A85A5A",
+    "onError": "#FFFFFF",
+    "info": "#8C867B",
+    "onInfo": "#FFFFFF",
+    "border": "#E6E1D8",
+    "borderStrong": "#CCC4B8",
+    "divider": "#F0EBE1"
+  },
+  "typography": {
+    "displayFontFamily": "Playfair Display",
+    "textFontFamily": "DM Sans",
+    "scale": {
+      "sm": 12,
+      "base": 14,
+      "lg": 16,
+      "xl": 20,
+      "2xl": 24
+    }
+  },
+  "spacing": {
+    "rule": "Magazine-like spacing rhythms with generous vertical breathing room, intentional empty space, and minimal density. Ensure comfortable padding for touch targets.",
+    "xs": 4,
+    "sm": 8,
+    "md": 12,
+    "lg": 16,
+    "xl": 24,
+    "2xl": 32,
+    "3xl": 48
+  },
+  "radius_tokens": {
+    "sm": 6,
+    "md": 12,
+    "lg": 20,
+    "pill": 999
+  },
+  "shadow_tier": 0,
+  "navigation": "bottom_tabs",
+  "icon_set": "Feather",
+  "glassmorphism": {
+    "enabled": false,
+    "do's": [
+      "Use solid surface backgrounds instead of glass to maintain the matte, organic editorial feel."
+    ],
+    "dont's": [
+      "Do not use blur or glassmorphism as it clashes with the Editorial/Print aesthetic."
+    ]
+  },
+  "platform_libraries": {
+    "glass": {
+      "ios": "expo-glass-effect",
+      "android": "expo-blur",
+      "low_end_android_fallback": "solid surfaceSecondary"
+    },
+    "image": "expo-image",
+    "blur": "expo-blur",
+    "bottom_sheet": "@gorhom/bottom-sheet",
+    "animation": "react-native-reanimated",
+    "gesture": "react-native-gesture-handler"
+  },
+  "haptics": {
+    "primary_button_press": "selection",
+    "add_to_cart": "success",
+    "approve_product": "success",
+    "reject_product": "warning",
+    "tab_press": "selection"
+  },
+  "screens": [
+    {
+      "name": "Home (Customer)",
+      "purpose": "Showcase featured artisans and trending handmade products using visually rich editorial layouts.",
+      "states": {
+        "loading": "Centered minimal spinner with 'Curating marketplace...'",
+        "empty": "Empty table illustration with 'No products found in this category.'",
+        "error": "Readable error message with a 'Try Again' button."
+      },
+      "layout": "Use a full-width featured hero image (artisan working) with a gradient scrim and white serif text at the bottom. Below, use a 2-column grid for products with generous vertical spacing and a 'Featured Collections' horizontal scrolling section. Hide header on scroll."
+    },
+    {
+      "name": "Product Detail Page",
+      "purpose": "Tell the artisan's story and showcase product details with minimal distraction, leading to checkout.",
+      "states": {
+        "loading": "Skeleton loading for image and text lines.",
+        "empty": "N/A",
+        "error": "Error fetching product details, retry button."
+      },
+      "layout": "Minimal header. Full-width, high-res image carousel at the top. Above the fold: Breadcrumbs, Title, Price, and Sticky 'Add to Cart' button pinned at the bottom. Below the fold: Artisan story, material details, and reviews. Thumb-friendly layout."
+    },
+    {
+      "name": "Seller Dashboard",
+      "purpose": "Allow artisans to manage their listings, view AI-generated descriptions, and track orders.",
+      "states": {
+        "loading": "Spinner centered.",
+        "empty": "Illustration of an empty studio with 'List your first creation.'",
+        "error": "Unable to load dashboard."
+      },
+      "layout": "Clean, list-based layout using surfaceSecondary cards for products. A prominent 'Add Product' primary CTA pinned at the bottom. AI Description generator is accessible via a clear secondary action button."
+    },
+    {
+      "name": "Admin Approval Queue",
+      "purpose": "Streamline the review process for new handmade products with clear approve/reject actions.",
+      "states": {
+        "loading": "Spinner loading queue.",
+        "empty": "Illustration of a clean desk with 'All caught up! No pending approvals.'",
+        "error": "Unable to fetch queue."
+      },
+      "layout": "Single column list of pending products. Each card shows the image, artisan name, and two action buttons: Approve (brandPrimary) and Reject (secondary), opening a bottom sheet for feedback."
+    }
+  ],
+  "images": {
+    "hero_artisan": {
+      "url": "https://images.unsplash.com/photo-1614244139209-53c071a4737d?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1OTV8MHwxfHNlYXJjaHwxfHxhcnRpc2FuJTIwd29ya2luZyUyMGluJTIwc3R1ZGlvfGVufDB8fHx8MTc4MzIzODc4N3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Artisan working in studio with black shirt"
+    },
+    "product_ceramics": {
+      "url": "https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NDk1Nzh8MHwxfHNlYXJjaHwxfHxoYW5kbWFkZSUyMGNlcmFtaWNzJTIwbWluaW1hbHxlbnwwfHx8fDE3ODMyMzg3ODd8MA&ixlib=rb-4.1.0&q=85",
+      "alt": "Handmade minimal brown clay vases"
+    },
+    "product_leather_wallet": {
+      "url": "https://images.unsplash.com/photo-1628483211662-9bcc692c46dc?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NzV8MHwxfHNlYXJjaHwyfHxoYW5kY3JhZnRlZCUyMGxlYXRoZXIlMjB3YWxsZXR8ZW58MHx8fHwxNzgzMjM4Nzg3fDA&ixlib=rb-4.1.0&q=85",
+      "alt": "Handcrafted leather wallet with tools"
+    },
+    "empty_state_desk": {
+      "url": "https://images.unsplash.com/photo-1449247709967-d4461a6a6103?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2NjZ8MHwxfHNlYXJjaHwxfHxtaW5pbWFsaXN0JTIwZW1wdHklMjBzaGVsZiUyMHRhYmxlfGVufDB8fHx8MTc4MzIzODc4N3ww&ixlib=rb-4.1.0&q=85",
+      "alt": "Minimalist empty white wooden table"
+    }
+  },
+  "instructions_to_main_agent": [
+    "Strictly follow the Editorial Mobile LIGHT personality. Do not use heavy drop shadows, rounded bubbles, or glassmorphism. Keep radii at sm (6px) or 0px.",
+    "Typography is key: Use Playfair Display for all major headings and DM Sans for body text. Enforce a max font weight of 500 across the entire app.",
+    "Colors: Strictly avoid any blues, purples, or indigos. Stick to the warm off-white (surface) and muted rust/terracotta (brand) palette provided.",
+    "For the Customer Home screen, use the 'hero_artisan' image with a vertical gradient scrim (transparent to surfaceInverse) so white text over it is fully legible.",
+    "For the Product Detail Page, minimize the header and ensure the 'Add to Cart' button is sticky at the bottom, outside the scroll view.",
+    "The Seller product listing form must include an obvious 'Generate with AI' action for descriptions.",
+    "When displaying products or artisans, favor real PNG images and photos over placeholder initials.",
+    "Ensure all data screens (like Admin Approval Queue or Seller Dashboard) have full-screen Loading, Empty, and Error states designed.",
+    "Implement haptics on primary actions (e.g., Add to Cart, Approve/Reject product, adding to wishlist) utilizing the provided haptics block."
+  ]
+}
