@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Pressable, ActivityIndicator, useWindowDimensions, FlatList, NativeSyntheticEvent, NativeScrollEvent } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -20,6 +20,8 @@ export default function ProductDetail() {
   const [busy, setBusy] = useState(false);
   const [inWishlist, setInWishlist] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
+  const [activeImg, setActiveImg] = useState(0);
+  const galleryRef = useRef<FlatList>(null);
 
   useEffect(() => {
     (async () => {
@@ -67,15 +69,46 @@ export default function ProductDetail() {
     );
   }
 
+  const gallery: string[] =
+    product.images && product.images.length > 0
+      ? product.images
+      : ['https://images.unsplash.com/photo-1449247709967-d4461a6a6103?w=800'];
+
+  const onGalleryScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const i = Math.round(e.nativeEvent.contentOffset.x / width);
+    if (i !== activeImg) setActiveImg(i);
+  };
+
   return (
     <View style={styles.safe}>
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }}>
         <View style={{ position: 'relative' }}>
-          <Image
-            source={{ uri: product.images?.[0] || 'https://images.unsplash.com/photo-1449247709967-d4461a6a6103?w=800' }}
-            style={[styles.heroImg, { width, height: width }]}
-            contentFit="cover"
+          <FlatList
+            ref={galleryRef}
+            testID="product-gallery"
+            data={gallery}
+            keyExtractor={(_, i) => String(i)}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={onGalleryScroll}
+            scrollEventThrottle={32}
+            renderItem={({ item, index }) => (
+              <Image
+                testID={`product-image-${index}`}
+                source={{ uri: item }}
+                style={[styles.heroImg, { width, height: width }]}
+                contentFit="cover"
+              />
+            )}
           />
+          {gallery.length > 1 && (
+            <View style={styles.dots} testID="gallery-dots">
+              {gallery.map((_, i) => (
+                <View key={i} style={[styles.dot, i === activeImg && styles.dotActive]} />
+              ))}
+            </View>
+          )}
           <SafeAreaView style={styles.headerOverlay} edges={['top']}>
             <Pressable testID="back-btn" onPress={() => router.back()} style={styles.circleBtn}>
               <Feather name="arrow-left" size={20} color={theme.color.onSurface} />
@@ -156,6 +189,9 @@ const styles = StyleSheet.create({
   headerOverlay: { position: 'absolute', top: 0, left: 0, right: 0, flexDirection: 'row', justifyContent: 'space-between', padding: theme.spacing.lg },
   circleBtn: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.9)', alignItems: 'center', justifyContent: 'center' },
   heroImg: { backgroundColor: theme.color.surfaceTertiary },
+  dots: { position: 'absolute', bottom: 12, alignSelf: 'center', flexDirection: 'row', gap: 6 },
+  dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.55)' },
+  dotActive: { backgroundColor: '#fff', width: 18 },
   body: { padding: theme.spacing.xl },
   kicker: { fontSize: 11, letterSpacing: 2, color: theme.color.muted, marginBottom: theme.spacing.sm },
   title: { fontFamily: theme.font.heading, fontSize: 28, color: theme.color.onSurface, lineHeight: 34 },

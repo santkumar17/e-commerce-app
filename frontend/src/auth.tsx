@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { router } from 'expo-router';
 import { api, User, setToken, getToken } from './api';
 
 interface AuthCtx {
@@ -51,6 +52,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     await setToken(null);
     setUser(null);
+    router.replace('/login');
   };
 
   return (

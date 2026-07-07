@@ -561,7 +561,11 @@ SEED_PRODUCTS = [
         "materials": "Local red clay, matte glaze",
         "dimensions": "18cm × 12cm",
         "shipping_days": 7,
-        "images": ["https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=800"],
+        "images": [
+            "https://images.unsplash.com/photo-1631125915902-d8abe9225ff2?w=800",
+            "https://images.unsplash.com/photo-1610701596007-11502861dcfa?w=800",
+            "https://images.unsplash.com/photo-1578749556568-bc2c40e68b61?w=800",
+        ],
         "tags": ["vase", "ceramic", "home decor"],
     },
     {
@@ -573,7 +577,10 @@ SEED_PRODUCTS = [
         "materials": "Full-grain vegetable-tanned leather, waxed linen thread",
         "dimensions": "11cm × 9cm",
         "shipping_days": 10,
-        "images": ["https://images.unsplash.com/photo-1628483211662-9bcc692c46dc?w=800"],
+        "images": [
+            "https://images.unsplash.com/photo-1628483211662-9bcc692c46dc?w=800",
+            "https://images.unsplash.com/photo-1627123424574-724758594e93?w=800",
+        ],
         "tags": ["wallet", "leather", "edc"],
     },
     {
@@ -585,7 +592,10 @@ SEED_PRODUCTS = [
         "materials": "100% undyed Merino wool",
         "dimensions": "180cm × 130cm",
         "shipping_days": 12,
-        "images": ["https://images.unsplash.com/photo-1544736779-15c123c4c66f?w=800"],
+        "images": [
+            "https://images.unsplash.com/photo-1544736779-15c123c4c66f?w=800",
+            "https://images.unsplash.com/photo-1615529182904-14819c35db37?w=800",
+        ],
         "tags": ["throw", "wool", "textile"],
     },
     {
@@ -597,7 +607,10 @@ SEED_PRODUCTS = [
         "materials": "Raw brass, sterling silver posts",
         "dimensions": "3cm drop",
         "shipping_days": 5,
-        "images": ["https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800"],
+        "images": [
+            "https://images.unsplash.com/photo-1611591437281-460bfbe1220a?w=800",
+            "https://images.unsplash.com/photo-1602752250015-52934bc45613?w=800",
+        ],
         "tags": ["earrings", "brass", "jewelry"],
     },
     {
@@ -609,7 +622,10 @@ SEED_PRODUCTS = [
         "materials": "Olive wood, walnut oil",
         "dimensions": "22cm diameter",
         "shipping_days": 8,
-        "images": ["https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800"],
+        "images": [
+            "https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?w=800",
+            "https://images.unsplash.com/photo-1578500494198-246f612d3b3d?w=800",
+        ],
         "tags": ["bowl", "wood", "kitchen"],
     },
     {
@@ -621,7 +637,10 @@ SEED_PRODUCTS = [
         "materials": "Water-based ink, handmade cotton paper",
         "dimensions": "A4 / 21cm × 30cm",
         "shipping_days": 6,
-        "images": ["https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800"],
+        "images": [
+            "https://images.unsplash.com/photo-1513519245088-0e12902e5a38?w=800",
+            "https://images.unsplash.com/photo-1502085671122-2d218cd434e6?w=800",
+        ],
         "tags": ["print", "botanical", "art"],
     },
 ]
@@ -657,7 +676,11 @@ async def seed():
 
     # Seed products (approved for demo)
     for p in SEED_PRODUCTS:
-        if await db.products.find_one({"title": p["title"]}):
+        existing = await db.products.find_one({"title": p["title"]})
+        if existing:
+            # keep everything, but refresh images (idempotent upgrade for gallery demo)
+            if existing.get("images") != p["images"]:
+                await db.products.update_one({"id": existing["id"]}, {"$set": {"images": p["images"]}})
             continue
         doc = {
             **p,

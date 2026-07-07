@@ -10,7 +10,11 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.emergent.makerstore.bavamx"
+      "bundleIdentifier": "com.emergent.makerstore.bavamx",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Add photos of your handmade creations to listings",
+        "NSCameraUsageDescription": "Take photos of your handmade creations for listings"
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -18,7 +22,8 @@
         "backgroundColor": "#000000"
       },
       "edgeToEdgeEnabled": true,
-      "package": "com.emergent.makerstore.bavamx"
+      "package": "com.emergent.makerstore.bavamx",
+      "permissions": ["android.permission.READ_MEDIA_IMAGES", "android.permission.CAMERA"]
     },
     "web": {
       "bundler": "metro",
