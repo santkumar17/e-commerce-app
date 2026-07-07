@@ -2,12 +2,13 @@ import { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, Pressable } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { api } from '@/src/api';
 import { theme } from '@/src/theme';
 
 export default function Orders() {
+  const router = useRouter();
   const [items, setItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -44,15 +45,30 @@ export default function Orders() {
                   <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
                 </View>
               </View>
-              {item.items.slice(0, 2).map((it: any, idx: number) => (
+              {item.items.slice(0, 3).map((it: any, idx: number) => (
                 <View key={idx} style={styles.line}>
                   <Image source={{ uri: it.image }} style={styles.lineImg} contentFit="cover" />
                   <View style={{ flex: 1 }}>
                     <Text style={styles.lineTitle} numberOfLines={1}>{it.title}</Text>
                     <Text style={styles.lineMeta}>Qty {it.qty} · ${it.price.toFixed(0)}</Text>
                   </View>
+                  {item.status === 'delivered' && (
+                    <Pressable
+                      testID={`rate-item-${item.id}-${it.product_id}`}
+                      onPress={() => router.push({ pathname: '/review/[product_id]', params: { product_id: it.product_id, order_id: item.id, title: it.title } })}
+                      style={styles.rateBtn}
+                    >
+                      <Feather name="star" size={12} color={theme.color.brand} />
+                      <Text style={styles.rateText}>Rate</Text>
+                    </Pressable>
+                  )}
                 </View>
               ))}
+              {item.discount && item.discount > 0 ? (
+                <Text style={styles.discountLine} testID={`order-discount-${item.id}`}>
+                  {item.coupon_code} · saved ${item.discount.toFixed(2)}
+                </Text>
+              ) : null}
               <View style={styles.totalRow}>
                 <Text style={styles.totalLabel}>Total (COD)</Text>
                 <Text style={styles.totalVal}>${item.total.toFixed(2)}</Text>
@@ -93,6 +109,9 @@ const styles = StyleSheet.create({
   lineImg: { width: 44, height: 44, borderRadius: theme.radius.sm, backgroundColor: theme.color.surfaceTertiary },
   lineTitle: { fontSize: 13, color: theme.color.onSurface },
   lineMeta: { fontSize: 11, color: theme.color.muted, marginTop: 2 },
+  rateBtn: { flexDirection: 'row', gap: 4, alignItems: 'center', paddingHorizontal: 10, paddingVertical: 6, borderRadius: theme.radius.pill, borderWidth: 1, borderColor: theme.color.brand, backgroundColor: theme.color.brandTertiary },
+  rateText: { fontSize: 11, color: theme.color.brand, fontWeight: '500' },
+  discountLine: { fontSize: 11, color: theme.color.success, marginTop: theme.spacing.sm },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: theme.spacing.md, paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.color.divider },
   totalLabel: { fontSize: 13, color: theme.color.muted },
   totalVal: { fontFamily: theme.font.heading, fontSize: 18, color: theme.color.onSurface },

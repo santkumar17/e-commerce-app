@@ -1,11 +1,13 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { Feather } from '@expo/vector-icons';
 import { api } from '@/src/api';
 import { theme } from '@/src/theme';
 
 export default function AdminDashboard() {
+  const router = useRouter();
   const [stats, setStats] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -40,6 +42,24 @@ export default function AdminDashboard() {
             <View style={styles.row}>
               <Card label="Orders" value={stats.orders} big testID="stat-orders" />
             </View>
+
+            <Text style={styles.section}>Manage</Text>
+            <Pressable testID="nav-coupons" onPress={() => router.push('/admin/coupons')} style={styles.linkCard}>
+              <Feather name="tag" size={20} color={theme.color.brand} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkTitle}>Coupons</Text>
+                <Text style={styles.linkSub}>Create promo codes for customers</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={theme.color.muted} />
+            </Pressable>
+            <Pressable testID="nav-sellers" onPress={() => router.push('/admin/sellers')} style={styles.linkCard}>
+              <Feather name="award" size={20} color={theme.color.brand} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.linkTitle}>Sellers</Text>
+                <Text style={styles.linkSub}>Verify artisans and view listings count</Text>
+              </View>
+              <Feather name="chevron-right" size={18} color={theme.color.muted} />
+            </Pressable>
           </>
         )}
       </ScrollView>
@@ -65,4 +85,8 @@ const styles = StyleSheet.create({
   cardAccent: { backgroundColor: theme.color.brand, borderColor: theme.color.brand },
   cardValue: { fontFamily: theme.font.heading, fontSize: 32, color: theme.color.onSurface },
   cardLabel: { color: theme.color.muted, fontSize: 12, textTransform: 'uppercase', letterSpacing: 1, marginTop: 4 },
+  section: { fontFamily: theme.font.heading, fontSize: 20, color: theme.color.onSurface, marginTop: theme.spacing.xl, marginBottom: theme.spacing.md },
+  linkCard: { flexDirection: 'row', alignItems: 'center', gap: theme.spacing.md, padding: theme.spacing.lg, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.md, borderWidth: 1, borderColor: theme.color.border, marginBottom: theme.spacing.sm },
+  linkTitle: { fontSize: 15, color: theme.color.onSurface },
+  linkSub: { fontSize: 12, color: theme.color.muted, marginTop: 2 },
 });

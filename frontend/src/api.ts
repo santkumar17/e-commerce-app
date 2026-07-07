@@ -84,19 +84,35 @@ export const api = {
   addWishlist: (id: string) => req(`/wishlist/${id}`, { method: 'POST' }),
   removeWishlist: (id: string) => req(`/wishlist/${id}`, { method: 'DELETE' }),
 
-  checkout: (address: any) =>
+  checkout: (address: any, coupon_code?: string) =>
     req('/orders/checkout', {
       method: 'POST',
-      body: JSON.stringify({ address, payment_method: 'cod' }),
+      body: JSON.stringify({ address, payment_method: 'cod', coupon_code }),
     }),
   orders: () => req('/orders'),
   setOrderStatus: (id: string, status: string) =>
     req(`/orders/${id}/status?status=${status}`, { method: 'POST' }),
 
   reviews: (pid: string) => req(`/products/${pid}/reviews`),
-  addReview: (body: { product_id: string; rating: number; comment: string }) =>
+  addReview: (body: { product_id: string; rating: number; comment: string; order_id?: string }) =>
     req('/reviews', { method: 'POST', body: JSON.stringify(body) }),
 
   generateDescription: (body: { title: string; keywords?: string; materials?: string }) =>
     req('/ai/generate-description', { method: 'POST', body: JSON.stringify(body) }),
+
+  seller: (sid: string) => req(`/sellers/${sid}`),
+  adminListSellers: () => req('/admin/sellers'),
+  adminVerifySeller: (sid: string, verified: boolean) =>
+    req(`/admin/sellers/${sid}/verify?verified=${verified}`, { method: 'POST' }),
+
+  adminListCoupons: () => req('/admin/coupons'),
+  adminCreateCoupon: (body: { code: string; discount_type: 'percent' | 'flat'; value: number; min_order?: number; active?: boolean }) =>
+    req('/admin/coupons', { method: 'POST', body: JSON.stringify(body) }),
+  adminDeleteCoupon: (code: string) => req(`/admin/coupons/${code}`, { method: 'DELETE' }),
+  validateCoupon: (code: string, subtotal: number) =>
+    req('/coupons/validate', { method: 'POST', body: JSON.stringify({ code, subtotal }) }),
+
+  notifications: () => req('/notifications'),
+  markNotifRead: (nid: string) => req(`/notifications/${nid}/read`, { method: 'POST' }),
+  markAllNotifRead: () => req('/notifications/read-all', { method: 'POST' }),
 };

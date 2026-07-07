@@ -113,9 +113,13 @@ export default function ProductForm() {
     } finally { setAiBusy(false); }
   };
 
-  const submit = async () => {
-    if (!form.title || !form.description || !form.price) {
-      setErr('Please fill title, description and price.');
+  const submit = async (asDraft = false) => {
+    if (!form.title || !form.price) {
+      setErr('Please fill title and price.');
+      return;
+    }
+    if (!asDraft && !form.description) {
+      setErr('Please fill description before submitting.');
       return;
     }
     setErr(null); setBusy(true);
@@ -131,6 +135,7 @@ export default function ProductForm() {
         shipping_days: parseInt(form.shipping_days) || 7,
         images: images.length ? images : [DEFAULT_IMG],
         tags: form.tags.split(',').map((t: string) => t.trim()).filter(Boolean),
+        status: asDraft ? 'draft' : 'pending',
       };
       if (editing) await api.updateProduct(id!, payload);
       else await api.createProduct(payload);
@@ -256,9 +261,14 @@ export default function ProductForm() {
           )}
         </ScrollView>
         <SafeAreaView edges={['bottom']} style={styles.footer}>
-          <Pressable testID="pf-save-btn" onPress={submit} disabled={busy} style={styles.cta}>
-            {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{editing ? 'Resubmit for review' : 'Submit for review'}</Text>}
-          </Pressable>
+          <View style={styles.footerRow}>
+            <Pressable testID="pf-draft-btn" onPress={() => submit(true)} disabled={busy} style={styles.draftBtn}>
+              <Text style={styles.draftText}>Save draft</Text>
+            </Pressable>
+            <Pressable testID="pf-save-btn" onPress={() => submit(false)} disabled={busy} style={styles.cta}>
+              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.ctaText}>{editing ? 'Resubmit' : 'Submit for review'}</Text>}
+            </Pressable>
+          </View>
         </SafeAreaView>
       </SafeAreaView>
     </KeyboardAvoidingView>
@@ -301,6 +311,9 @@ const styles = StyleSheet.create({
   deleteBtn: { flexDirection: 'row', gap: 8, alignItems: 'center', justifyContent: 'center', marginTop: theme.spacing.xl, padding: 12, borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.color.error },
   deleteText: { color: theme.color.error, fontSize: 13 },
   footer: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.color.surfaceSecondary, padding: theme.spacing.xl, borderTopWidth: 1, borderTopColor: theme.color.border },
-  cta: { backgroundColor: theme.color.brand, paddingVertical: 16, borderRadius: theme.radius.sm, alignItems: 'center' },
+  footerRow: { flexDirection: 'row', gap: theme.spacing.md },
+  draftBtn: { paddingVertical: 16, paddingHorizontal: 20, borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.color.borderStrong, alignItems: 'center', justifyContent: 'center' },
+  draftText: { color: theme.color.onSurface, fontSize: 14 },
+  cta: { flex: 1, backgroundColor: theme.color.brand, paddingVertical: 16, borderRadius: theme.radius.sm, alignItems: 'center' },
   ctaText: { color: '#fff', fontSize: 16, fontWeight: '500' },
 });

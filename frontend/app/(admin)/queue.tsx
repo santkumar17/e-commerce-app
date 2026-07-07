@@ -8,6 +8,7 @@ import { useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { api } from '@/src/api';
 import { theme } from '@/src/theme';
+import { NotifBell } from '@/src/components/NotifBell';
 
 const QUICK_REASONS = [
   'Poor image quality',
@@ -49,9 +50,12 @@ export default function AdminQueue() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.kicker}>Admin</Text>
-        <Text style={styles.title}>Pending review</Text>
-        <Text style={styles.count} testID="pending-count">{items.length} awaiting</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.kicker}>Admin</Text>
+          <Text style={styles.title}>Pending review</Text>
+          <Text style={styles.count} testID="pending-count">{items.length} awaiting</Text>
+        </View>
+        <NotifBell color={theme.color.onSurface} onDark={false} testID="admin-notif-bell" />
       </View>
 
       {loading ? <ActivityIndicator color={theme.color.brand} style={{ marginTop: 40 }} /> : (
@@ -151,7 +155,7 @@ export default function AdminQueue() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.color.surface },
-  header: { padding: theme.spacing.xl, paddingBottom: theme.spacing.md },
+  header: { flexDirection: 'row', alignItems: 'flex-start', padding: theme.spacing.xl, paddingBottom: theme.spacing.md },
   kicker: { fontSize: 11, letterSpacing: 2, color: theme.color.muted },
   title: { fontFamily: theme.font.heading, fontSize: 30, color: theme.color.onSurface, marginTop: 2 },
   count: { color: theme.color.muted, marginTop: 4, fontSize: 13 },

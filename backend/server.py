@@ -81,6 +81,26 @@ def require_role(*roles):
     return _dep
 
 
+async def notify(user_id: str, type_: str, title: str, body: str, meta: dict | None = None):
+    """Fire-and-forget in-app notification."""
+    if not user_id:
+        return
+    doc = {
+        "id": str(uuid.uuid4()),
+        "user_id": user_id,
+        "type": type_,
+        "title": title,
+        "body": body,
+        "meta": meta or {},
+        "read": False,
+        "created_at": now_iso(),
+    }
+    try:
+        await db.notifications.insert_one(doc)
+    except Exception:
+        log.exception("notify failed")
+
+
 # ---------- Models ----------
 Role = Literal["customer", "seller", "admin"]
 ProductStatus = Literal["draft", "pending", "approved", "rejected"]
@@ -110,7 +130,7 @@ class ProductIn(BaseModel):
     shipping_days: int = 7
     images: List[str] = Field(default_factory=list)  # data URIs or URLs
     tags: List[str] = Field(default_factory=list)
-    status: ProductStatus = "pending"
+    status: ProductStatus = "pending"  # allow "draft" from seller
 
 
 class RejectIn(BaseModel):
@@ -134,18 +154,33 @@ class AddressIn(BaseModel):
 class CheckoutIn(BaseModel):
     address: AddressIn
     payment_method: Literal["cod"] = "cod"
+    coupon_code: Optional[str] = None
 
 
 class ReviewIn(BaseModel):
     product_id: str
     rating: int = Field(ge=1, le=5)
     comment: str = ""
+    order_id: Optional[str] = None
 
 
 class AIGenIn(BaseModel):
     title: str
     keywords: str = ""
     materials: str = ""
+
+
+class CouponIn(BaseModel):
+    code: str
+    discount_type: Literal["percent", "flat"] = "percent"
+    value: float
+    min_order: float = 0.0
+    active: bool = True
+
+
+class ValidateCouponIn(BaseModel):
+    code: str
+    subtotal: float
 
 
 # ---------- Auth ----------
@@ -159,6 +194,8 @@ async def register(body: RegisterIn):
         "email": body.email.lower(),
         "password": hash_password(body.password),
         "role": body.role,
+        "verified": False,  # sellers start unverified, admin verifies
+        "bio": "",
         "created_at": now_iso(),
     }
     await db.users.insert_one(user)
@@ -254,19 +291,21 @@ async def get_product(pid: str):
     p = await db.products.find_one({"id": pid}, {"_id": 0})
     if not p:
         raise HTTPException(404, "Not found")
-    # Attach seller name
     seller = await db.users.find_one({"id": p.get("seller_id")}, {"_id": 0, "password": 0})
     p["seller_name"] = seller["name"] if seller else "Unknown Artisan"
+    p["seller_verified"] = bool(seller.get("verified")) if seller else False
     return p
 
 
 @api.post("/products")
 async def create_product(body: ProductIn, user=Depends(require_role("seller", "admin"))):
     pdata = body.model_dump()
+    # sellers can save as draft; anything else goes to pending
+    status = "draft" if pdata.get("status") == "draft" else "pending"
     pdata.update({
         "id": str(uuid.uuid4()),
         "seller_id": user["id"],
-        "status": "pending",
+        "status": status,
         "rating": 0.0,
         "review_count": 0,
         "rejection_reason": None,
@@ -285,8 +324,9 @@ async def update_product(pid: str, body: ProductIn, user=Depends(require_role("s
     if user["role"] != "admin" and p["seller_id"] != user["id"]:
         raise HTTPException(403, "Not your product")
     update = body.model_dump()
+    # if seller explicitly asked to keep as draft, honor it; else back to pending on edit
+    update["status"] = "draft" if update.get("status") == "draft" else "pending"
     update["updated_at"] = now_iso()
-    update["status"] = "pending"  # resubmit for review
     update["rejection_reason"] = None
     await db.products.update_one({"id": pid}, {"$set": update})
     doc = await db.products.find_one({"id": pid}, {"_id": 0})
@@ -322,23 +362,39 @@ async def pending_products(user=Depends(require_role("admin"))):
 
 @api.post("/admin/products/{pid}/approve")
 async def approve_product(pid: str, user=Depends(require_role("admin"))):
-    r = await db.products.update_one(
+    p = await db.products.find_one({"id": pid}, {"_id": 0})
+    if not p:
+        raise HTTPException(404, "Not found")
+    await db.products.update_one(
         {"id": pid},
         {"$set": {"status": "approved", "rejection_reason": None, "updated_at": now_iso()}},
     )
-    if not r.matched_count:
-        raise HTTPException(404, "Not found")
+    await notify(
+        p.get("seller_id"),
+        "product_approved",
+        "Your listing is live",
+        f"'{p.get('title', '')}' has been approved.",
+        {"product_id": pid},
+    )
     return {"ok": True}
 
 
 @api.post("/admin/products/{pid}/reject")
 async def reject_product(pid: str, body: RejectIn, user=Depends(require_role("admin"))):
-    r = await db.products.update_one(
+    p = await db.products.find_one({"id": pid}, {"_id": 0})
+    if not p:
+        raise HTTPException(404, "Not found")
+    await db.products.update_one(
         {"id": pid},
         {"$set": {"status": "rejected", "rejection_reason": body.reason, "updated_at": now_iso()}},
     )
-    if not r.matched_count:
-        raise HTTPException(404, "Not found")
+    await notify(
+        p.get("seller_id"),
+        "product_rejected",
+        "Listing needs changes",
+        f"'{p.get('title', '')}' was rejected. Reason: {body.reason}",
+        {"product_id": pid, "reason": body.reason},
+    )
     return {"ok": True}
 
 
@@ -431,7 +487,7 @@ async def checkout(body: CheckoutIn, user=Depends(require_role("customer"))):
     if not cart_items:
         raise HTTPException(400, "Cart is empty")
     order_items = []
-    total = 0.0
+    subtotal = 0.0
     for it in cart_items:
         p = await db.products.find_one({"id": it["product_id"]}, {"_id": 0})
         if not p:
@@ -444,13 +500,32 @@ async def checkout(body: CheckoutIn, user=Depends(require_role("customer"))):
             "qty": it["qty"],
             "seller_id": p.get("seller_id"),
         }
-        total += p["price"] * it["qty"]
+        subtotal += p["price"] * it["qty"]
         order_items.append(line)
+
+    discount = 0.0
+    coupon_code: Optional[str] = None
+    if body.coupon_code:
+        c = await db.coupons.find_one({"code": body.coupon_code.strip().upper(), "active": True}, {"_id": 0})
+        if not c:
+            raise HTTPException(400, "Invalid coupon")
+        if subtotal < c.get("min_order", 0):
+            raise HTTPException(400, f"Coupon requires ${c['min_order']:.0f} minimum")
+        if c["discount_type"] == "percent":
+            discount = round(subtotal * c["value"] / 100.0, 2)
+        else:
+            discount = min(subtotal, float(c["value"]))
+        coupon_code = c["code"]
+
+    total = max(0.0, round(subtotal - discount, 2))
     order = {
         "id": str(uuid.uuid4()),
         "user_id": user["id"],
         "items": order_items,
-        "total": round(total, 2),
+        "subtotal": round(subtotal, 2),
+        "discount": discount,
+        "coupon_code": coupon_code,
+        "total": total,
         "address": body.address.model_dump(),
         "payment_method": body.payment_method,
         "status": "placed",
@@ -458,6 +533,11 @@ async def checkout(body: CheckoutIn, user=Depends(require_role("customer"))):
     }
     await db.orders.insert_one(order)
     await db.cart.delete_many({"user_id": user["id"]})
+
+    # notify each seller of the new order
+    for sid in {li.get("seller_id") for li in order_items if li.get("seller_id")}:
+        await notify(sid, "new_order", "New order received", f"Order #{order['id'][:8]} · ${total:.2f}", {"order_id": order["id"]})
+
     order.pop("_id", None)
     return order
 
@@ -485,6 +565,116 @@ async def update_order_status(oid: str, status: str = Query(...), user=Depends(g
         if o["user_id"] != user["id"] or status != "cancelled":
             raise HTTPException(403, "Forbidden")
     await db.orders.update_one({"id": oid}, {"$set": {"status": status, "updated_at": now_iso()}})
+    if user["role"] != "customer":
+        await notify(
+            o.get("user_id"),
+            "order_status",
+            f"Order #{oid[:8]} {status}",
+            "Track your order in the Orders tab.",
+            {"order_id": oid, "status": status},
+        )
+    return {"ok": True}
+
+
+# ---------- Sellers ----------
+@api.get("/sellers/{sid}")
+async def public_seller(sid: str):
+    s = await db.users.find_one({"id": sid, "role": "seller"}, {"_id": 0, "password": 0, "email": 0})
+    if not s:
+        raise HTTPException(404, "Not found")
+    products = await db.products.find(
+        {"seller_id": sid, "status": "approved"}, {"_id": 0}
+    ).sort("created_at", -1).to_list(50)
+    return {"seller": s, "products": products, "products_count": len(products)}
+
+
+@api.get("/admin/sellers")
+async def admin_list_sellers(user=Depends(require_role("admin"))):
+    items = await db.users.find({"role": "seller"}, {"_id": 0, "password": 0}).to_list(500)
+    for s in items:
+        s["products_count"] = await db.products.count_documents({"seller_id": s["id"]})
+    return items
+
+
+@api.post("/admin/sellers/{sid}/verify")
+async def admin_verify_seller(sid: str, verified: bool = Query(True), user=Depends(require_role("admin"))):
+    r = await db.users.update_one({"id": sid, "role": "seller"}, {"$set": {"verified": verified}})
+    if not r.matched_count:
+        raise HTTPException(404, "Not found")
+    await notify(
+        sid,
+        "seller_verified" if verified else "seller_unverified",
+        "You're verified" if verified else "Verification removed",
+        "A verified badge now appears on your listings." if verified else "Please contact support.",
+        {},
+    )
+    return {"ok": True, "verified": verified}
+
+
+# ---------- Coupons ----------
+@api.get("/admin/coupons")
+async def list_coupons(user=Depends(require_role("admin"))):
+    return await db.coupons.find({}, {"_id": 0}).sort("created_at", -1).to_list(200)
+
+
+@api.post("/admin/coupons")
+async def create_coupon(body: CouponIn, user=Depends(require_role("admin"))):
+    code = body.code.strip().upper()
+    if not code:
+        raise HTTPException(400, "Code required")
+    if await db.coupons.find_one({"code": code}):
+        raise HTTPException(400, "Coupon code already exists")
+    doc = {
+        "id": str(uuid.uuid4()),
+        "code": code,
+        "discount_type": body.discount_type,
+        "value": body.value,
+        "min_order": body.min_order,
+        "active": body.active,
+        "created_at": now_iso(),
+    }
+    await db.coupons.insert_one(doc)
+    doc.pop("_id", None)
+    return doc
+
+
+@api.delete("/admin/coupons/{code}")
+async def delete_coupon(code: str, user=Depends(require_role("admin"))):
+    await db.coupons.delete_one({"code": code.upper()})
+    return {"ok": True}
+
+
+@api.post("/coupons/validate")
+async def validate_coupon(body: ValidateCouponIn, user=Depends(require_role("customer"))):
+    c = await db.coupons.find_one({"code": body.code.strip().upper(), "active": True}, {"_id": 0})
+    if not c:
+        raise HTTPException(404, "Invalid or inactive coupon")
+    if body.subtotal < c.get("min_order", 0):
+        raise HTTPException(400, f"Requires ${c['min_order']:.0f} minimum")
+    if c["discount_type"] == "percent":
+        discount = round(body.subtotal * c["value"] / 100.0, 2)
+    else:
+        discount = min(body.subtotal, float(c["value"]))
+    return {"code": c["code"], "discount": discount, "discount_type": c["discount_type"], "value": c["value"]}
+
+
+# ---------- Notifications ----------
+@api.get("/notifications")
+async def list_notifications(user=Depends(get_current_user)):
+    items = await db.notifications.find({"user_id": user["id"]}, {"_id": 0}).sort("created_at", -1).limit(100).to_list(100)
+    unread = sum(1 for n in items if not n.get("read"))
+    return {"items": items, "unread": unread}
+
+
+@api.post("/notifications/{nid}/read")
+async def mark_read(nid: str, user=Depends(get_current_user)):
+    await db.notifications.update_one({"id": nid, "user_id": user["id"]}, {"$set": {"read": True}})
+    return {"ok": True}
+
+
+@api.post("/notifications/read-all")
+async def mark_all_read(user=Depends(get_current_user)):
+    await db.notifications.update_many({"user_id": user["id"], "read": False}, {"$set": {"read": True}})
     return {"ok": True}
 
 
@@ -497,6 +687,11 @@ async def product_reviews(pid: str):
 
 @api.post("/reviews")
 async def add_review(body: ReviewIn, user=Depends(require_role("customer"))):
+    verified_purchase = False
+    if body.order_id:
+        o = await db.orders.find_one({"id": body.order_id, "user_id": user["id"], "status": "delivered"}, {"_id": 0})
+        if o and any(it.get("product_id") == body.product_id for it in o.get("items", [])):
+            verified_purchase = True
     review = {
         "id": str(uuid.uuid4()),
         "product_id": body.product_id,
@@ -504,10 +699,11 @@ async def add_review(body: ReviewIn, user=Depends(require_role("customer"))):
         "user_name": user["name"],
         "rating": body.rating,
         "comment": body.comment,
+        "order_id": body.order_id,
+        "verified_purchase": verified_purchase,
         "created_at": now_iso(),
     }
     await db.reviews.insert_one(review)
-    # recompute product rating
     reviews = await db.reviews.find({"product_id": body.product_id}, {"_id": 0, "rating": 1}).to_list(1000)
     avg = sum(r["rating"] for r in reviews) / len(reviews)
     await db.products.update_one(
@@ -661,6 +857,9 @@ async def seed():
         if existing:
             if u["role"] == "seller":
                 seller_id = existing["id"]
+                # ensure demo seller is verified for badge demo
+                if not existing.get("verified"):
+                    await db.users.update_one({"id": existing["id"]}, {"$set": {"verified": True, "bio": existing.get("bio") or "Working from a small studio in Jaipur — one piece at a time."}})
             continue
         uid = str(uuid.uuid4())
         await db.users.insert_one({
@@ -669,6 +868,8 @@ async def seed():
             "email": u["email"],
             "password": hash_password(u["password"]),
             "role": u["role"],
+            "verified": u["role"] == "seller",  # auto-verify demo seller
+            "bio": "Working from a small studio in Jaipur — one piece at a time." if u["role"] == "seller" else "",
             "created_at": now_iso(),
         })
         if u["role"] == "seller":
@@ -718,6 +919,14 @@ async def seed():
             "created_at": now_iso(),
             "updated_at": now_iso(),
         })
+
+    # Seed demo coupons
+    for c in [
+        {"code": "WELCOME10", "discount_type": "percent", "value": 10.0, "min_order": 0.0, "active": True},
+        {"code": "ARTISAN5", "discount_type": "flat", "value": 5.0, "min_order": 30.0, "active": True},
+    ]:
+        if not await db.coupons.find_one({"code": c["code"]}):
+            await db.coupons.insert_one({**c, "id": str(uuid.uuid4()), "created_at": now_iso()})
 
     return {"ok": True, "categories": len(DEFAULT_CATEGORIES)}
 

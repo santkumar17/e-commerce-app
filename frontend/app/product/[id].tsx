@@ -130,7 +130,20 @@ export default function ProductDetail() {
             </View>
           </View>
 
-          <Text style={styles.artisan}>By {product.seller_name}</Text>
+          <Pressable
+            testID="meet-the-maker"
+            onPress={() => product.seller_id && router.push(`/seller/${product.seller_id}`)}
+            style={styles.artisanRow}
+          >
+            <Text style={styles.artisan}>By {product.seller_name}</Text>
+            {product.seller_verified && (
+              <View style={styles.verifiedBadge} testID="verified-badge">
+                <Feather name="check" size={10} color="#fff" />
+                <Text style={styles.verifiedText}>VERIFIED</Text>
+              </View>
+            )}
+            <Feather name="chevron-right" size={14} color={theme.color.muted} />
+          </Pressable>
 
           <Text style={styles.section}>The story</Text>
           <Text style={styles.desc}>{product.description}</Text>
@@ -147,14 +160,21 @@ export default function ProductDetail() {
             <Text style={styles.emptyDim}>No reviews yet.</Text>
           ) : reviews.map((r) => (
             <View key={r.id} style={styles.review}>
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Text style={styles.reviewName}>{r.user_name}</Text>
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
+                  <Text style={styles.reviewName}>{r.user_name}</Text>
+                  {r.verified_purchase && (
+                    <View style={styles.verifiedPurchase}>
+                      <Text style={styles.verifiedPurchaseText}>VERIFIED PURCHASE</Text>
+                    </View>
+                  )}
+                </View>
                 <View style={styles.rating}>
                   <Feather name="star" size={11} color={theme.color.warning} />
                   <Text style={styles.ratingText}>{r.rating}</Text>
                 </View>
               </View>
-              <Text style={styles.reviewText}>{r.comment}</Text>
+              {r.comment ? <Text style={styles.reviewText}>{r.comment}</Text> : null}
             </View>
           ))}
         </View>
@@ -199,7 +219,10 @@ const styles = StyleSheet.create({
   price: { fontFamily: theme.font.heading, fontSize: 26, color: theme.color.brand },
   rating: { flexDirection: 'row', alignItems: 'center', gap: 4 },
   ratingText: { fontSize: 13, color: theme.color.muted },
-  artisan: { color: theme.color.onSurfaceTertiary, marginTop: theme.spacing.sm, fontStyle: 'italic' },
+  artisan: { color: theme.color.onSurfaceTertiary, fontStyle: 'italic' },
+  artisanRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: theme.spacing.sm },
+  verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: theme.radius.sm, backgroundColor: theme.color.success },
+  verifiedText: { color: '#fff', fontSize: 9, letterSpacing: 1 },
   section: { fontFamily: theme.font.heading, fontSize: 18, color: theme.color.onSurface, marginTop: theme.spacing.xxl, marginBottom: theme.spacing.md },
   desc: { fontSize: 15, lineHeight: 24, color: theme.color.onSurface },
   specs: { marginTop: theme.spacing.xl, paddingVertical: theme.spacing.md, borderTopWidth: 1, borderBottomWidth: 1, borderColor: theme.color.divider },
@@ -209,6 +232,8 @@ const styles = StyleSheet.create({
   review: { paddingVertical: theme.spacing.md, borderBottomWidth: 1, borderBottomColor: theme.color.divider },
   reviewName: { fontSize: 14, color: theme.color.onSurface },
   reviewText: { fontSize: 13, color: theme.color.onSurfaceTertiary, marginTop: 4 },
+  verifiedPurchase: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: theme.radius.sm, backgroundColor: theme.color.brandTertiary },
+  verifiedPurchaseText: { color: theme.color.onBrandTertiary, fontSize: 9, letterSpacing: 1 },
   emptyDim: { color: theme.color.muted, fontSize: 13 },
   stickyBar: { position: 'absolute', left: 0, right: 0, bottom: 0, backgroundColor: theme.color.surfaceSecondary, paddingHorizontal: theme.spacing.xl, paddingTop: theme.spacing.md, borderTopWidth: 1, borderTopColor: theme.color.border },
   cta: { backgroundColor: theme.color.brand, paddingVertical: 16, borderRadius: theme.radius.sm, alignItems: 'center' },

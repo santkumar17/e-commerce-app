@@ -56,10 +56,13 @@ Mobile-first Expo app for a handmade marketplace with three roles: customer, sel
 ## Deferred (future iterations)
 - Real payment gateway (Stripe/UPI)
 - OAuth (Google) sign-in
-- Push notifications
-- Coupons/discounts
+- Push notifications (native build required)
 - Refunds & returns
 - Seller payout ledger
-- Multi-image gallery (currently single image URL)
-- Image upload from device (currently URL input)
+- Image upload from device — **DONE (v2)**: expo-image-picker with base64 data URIs, multi-image gallery + carousel dots
 - CMS static pages
+- Reviews UI (write) — **DONE (v3)**: `/review/[product_id]` with 5-star input; verified purchase badge on delivered orders
+- Verified Artisan badge + Meet the maker page — **DONE (v3)**: `/seller/[id]` public profile with bio, verified badge, listings
+- Draft status for sellers — **DONE (v3)**: separate "Save draft" button, draft count on dashboard
+- Coupons at checkout — **DONE (v3)**: admin CRUD at `/admin/coupons`, customer input on checkout, seeded `WELCOME10` (10%) and `ARTISAN5` ($5 off $30+)
+- Notifications inbox (bell icon) — **DONE (v3)**: `/notifications`, bell with unread badge on home/dashboard/queue; fires on approve/reject/new order/order status/verify

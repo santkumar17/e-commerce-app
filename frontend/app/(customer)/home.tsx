@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { api } from '@/src/api';
 import { useAuth } from '@/src/auth';
 import { theme } from '@/src/theme';
+import { NotifBell } from '@/src/components/NotifBell';
 
 interface Product {
   id: string; title: string; price: number; images: string[]; rating: number; category: string;
@@ -58,9 +59,12 @@ export default function Home() {
           <View style={styles.heroContent}>
             <View style={styles.heroTop}>
               <Text style={styles.hello}>Hello{user ? `, ${user.name.split(' ')[0]}` : ''}</Text>
-              <Pressable testID="logout-btn" onPress={logout} style={styles.iconBtn}>
-                <Feather name="log-out" size={18} color="#fff" />
-              </Pressable>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <NotifBell testID="home-notif-bell" />
+                <Pressable testID="logout-btn" onPress={logout} style={styles.iconBtn}>
+                  <Feather name="log-out" size={18} color="#fff" />
+                </Pressable>
+              </View>
             </View>
             <Text style={styles.heroKicker}>Featured artisan</Text>
             <Text style={styles.heroTitle}>Slow craft,{'\n'}patiently made.</Text>

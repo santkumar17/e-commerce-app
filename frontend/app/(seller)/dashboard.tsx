@@ -6,6 +6,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
 import { api } from '@/src/api';
 import { theme } from '@/src/theme';
+import { NotifBell } from '@/src/components/NotifBell';
 
 export default function SellerDashboard() {
   const router = useRouter();
@@ -22,6 +23,7 @@ export default function SellerDashboard() {
     approved: items.filter((i) => i.status === 'approved').length,
     pending: items.filter((i) => i.status === 'pending').length,
     rejected: items.filter((i) => i.status === 'rejected').length,
+    draft: items.filter((i) => i.status === 'draft').length,
   };
 
   return (
@@ -31,14 +33,18 @@ export default function SellerDashboard() {
           <Text style={styles.kicker}>Studio</Text>
           <Text style={styles.title}>Your listings</Text>
         </View>
-        <Pressable testID="add-product-btn" onPress={() => router.push('/seller/product-form')} style={styles.addBtn}>
-          <Feather name="plus" size={18} color="#fff" />
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+          <NotifBell color={theme.color.onSurface} onDark={false} testID="seller-notif-bell" />
+          <Pressable testID="add-product-btn" onPress={() => router.push('/seller/product-form')} style={styles.addBtn}>
+            <Feather name="plus" size={18} color="#fff" />
+          </Pressable>
+        </View>
       </View>
 
       <View style={styles.statsRow}>
         <Stat label="Live" value={counts.approved} color={theme.color.success} testID="stat-approved" />
         <Stat label="Pending" value={counts.pending} color={theme.color.warning} testID="stat-pending" />
+        <Stat label="Drafts" value={counts.draft} color={theme.color.info} testID="stat-draft" />
         <Stat label="Rejected" value={counts.rejected} color={theme.color.error} testID="stat-rejected" />
       </View>
 
@@ -95,6 +101,7 @@ function statusBg(s: string) {
   if (s === 'approved') return { backgroundColor: '#DDEADD' };
   if (s === 'pending') return { backgroundColor: '#EAE0D0' };
   if (s === 'rejected') return { backgroundColor: '#F0DADA' };
+  if (s === 'draft') return { backgroundColor: '#E6E1D8' };
   return { backgroundColor: theme.color.surfaceTertiary };
 }
 
