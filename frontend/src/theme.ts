@@ -35,5 +35,22 @@ export const theme = {
     xl: 20,
     xxl: 24,
     display: 32,
+    hero: 44,
+  },
+  elevation: {
+    subtle: {
+      shadowColor: '#2B2927',
+      shadowOffset: { width: 0, height: 4 },
+      shadowOpacity: 0.06,
+      shadowRadius: 12,
+      elevation: 2,
+    },
+    lift: {
+      shadowColor: '#2B2927',
+      shadowOffset: { width: 0, height: 8 },
+      shadowOpacity: 0.1,
+      shadowRadius: 20,
+      elevation: 4,
+    },
   },
 };
