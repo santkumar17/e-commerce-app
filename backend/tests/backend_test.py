@@ -332,6 +332,8 @@ class TestAI:
             pytest.skip(f"AI unreachable: {e}")
         if r.status_code == 500 and "AI generation failed" in r.text:
             pytest.skip(f"OpenAI unreachable: {r.text}")
+        if r.status_code == 501:
+            pytest.skip(f"AI description generation not configured in this environment: {r.text}")
         assert r.status_code == 200, r.text
         desc = r.json().get("description", "")
         assert isinstance(desc, str) and len(desc) > 20

@@ -76,21 +76,17 @@ export default function ProductForm() {
         allowsMultipleSelection: true,
         selectionLimit: MAX_IMAGES - images.length,
         quality: 0.7,
-        base64: true,
       });
       if (result.canceled) return;
-      const next: string[] = [];
+      const uploaded: string[] = [];
       for (const a of result.assets) {
-        if (a.base64) {
-          const mime = a.mimeType || 'image/jpeg';
-          next.push(`data:${mime};base64,${a.base64}`);
-        } else if (a.uri) {
-          next.push(a.uri);
-        }
+        const mime = a.mimeType || 'image/jpeg';
+        const { url } = await api.uploadImage(a.uri, mime);
+        uploaded.push(url);
       }
-      setImages((prev) => [...prev, ...next].slice(0, MAX_IMAGES));
+      setImages((prev) => [...prev, ...uploaded].slice(0, MAX_IMAGES));
     } catch (e: any) {
-      setErr(e?.message || 'Could not open picker');
+      setErr(e?.message || 'Could not upload image');
     } finally { setPickerBusy(false); }
   };
 

@@ -44,6 +44,25 @@ async function req(path: string, opts: RequestInit = {}) {
   return data;
 }
 
+async function uploadImage(uri: string, mimeType: string): Promise<{ url: string }> {
+  const token = await getToken();
+  const ext = mimeType.split('/')[1] || 'jpg';
+  const form = new FormData();
+  // React Native's fetch/FormData accepts this {uri, name, type} shape for file uploads.
+  form.append('file', { uri, name: `photo.${ext}`, type: mimeType } as any);
+  const headers: Record<string, string> = {};
+  if (token) headers.Authorization = `Bearer ${token}`;
+  const res = await fetch(`${BASE}/api/uploads/image`, { method: 'POST', body: form, headers });
+  const text = await res.text();
+  let data: any = null;
+  try { data = text ? JSON.parse(text) : null; } catch { data = text; }
+  if (!res.ok) {
+    const msg = (data && (data.detail || data.message)) || `HTTP ${res.status}`;
+    throw new Error(typeof msg === 'string' ? msg : JSON.stringify(msg));
+  }
+  return data;
+}
+
 export const api = {
   register: (body: { name: string; email: string; password: string; role: Role }) =>
     req('/auth/register', { method: 'POST', body: JSON.stringify(body) }),
@@ -64,6 +83,7 @@ export const api = {
   product: (id: string) => req(`/products/${id}`),
   featured: () => req('/products/featured'),
 
+  uploadImage,
   createProduct: (body: any) => req('/products', { method: 'POST', body: JSON.stringify(body) }),
   updateProduct: (id: string, body: any) => req(`/products/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
   deleteProduct: (id: string) => req(`/products/${id}`, { method: 'DELETE' }),
