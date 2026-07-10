@@ -39,7 +39,11 @@ export default function SellerProfile() {
       <ScrollView contentContainerStyle={{ padding: theme.spacing.xl, paddingBottom: theme.spacing.xxxl }}>
         <View style={styles.hero}>
           <View style={styles.avatar}>
-            <Text style={styles.avatarText}>{(seller.name || '?').charAt(0)}</Text>
+            {seller.avatar_url ? (
+              <Image source={{ uri: seller.avatar_url }} style={styles.avatarImg} contentFit="cover" />
+            ) : (
+              <Text style={styles.avatarText}>{(seller.name || '?').charAt(0)}</Text>
+            )}
           </View>
           <View style={styles.nameRow}>
             <Text style={styles.name} testID="seller-name">{seller.name}</Text>
@@ -92,7 +96,8 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.color.surface },
   header: { padding: theme.spacing.xl, paddingBottom: 0 },
   hero: { alignItems: 'center', paddingVertical: theme.spacing.xl },
-  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: theme.color.brandTertiary, alignItems: 'center', justifyContent: 'center' },
+  avatar: { width: 88, height: 88, borderRadius: 44, backgroundColor: theme.color.brandTertiary, alignItems: 'center', justifyContent: 'center', overflow: 'hidden' },
+  avatarImg: { width: '100%', height: '100%' },
   avatarText: { fontFamily: theme.font.heading, fontSize: 36, color: theme.color.brand },
   nameRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: theme.spacing.md },
   name: { fontFamily: theme.font.heading, fontSize: 26, color: theme.color.onSurface },

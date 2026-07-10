@@ -38,5 +38,5 @@ const styles = StyleSheet.create({
   wrap: { padding: 8, borderRadius: theme.radius.pill, backgroundColor: 'rgba(255,255,255,0.15)' },
   wrapLight: { backgroundColor: theme.color.surfaceTertiary },
   badge: { position: 'absolute', top: 2, right: 2, minWidth: 16, height: 16, borderRadius: 8, backgroundColor: theme.color.error, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 3 },
-  badgeText: { color: '#fff', fontSize: 9, fontWeight: '600' },
+  badgeText: { color: theme.color.onError, fontSize: 9, fontWeight: '600' },
 });

@@ -39,3 +39,16 @@ export function SkeletonCard({ width, imgHeight }: { width: number; imgHeight: n
     </View>
   );
 }
+
+// Convenience: skeleton for the shared ListRow shape (Search/Cart/Wishlist/Dashboard)
+export function SkeletonRow() {
+  return (
+    <View style={{ flexDirection: 'row', gap: theme.spacing.md, alignItems: 'center', paddingVertical: theme.spacing.md }}>
+      <Skeleton width={76} height={76} radius={theme.radius.sm} />
+      <View style={{ flex: 1, gap: 8 }}>
+        <Skeleton width={'80%'} height={14} />
+        <Skeleton width={'40%'} height={14} />
+      </View>
+    </View>
+  );
+}

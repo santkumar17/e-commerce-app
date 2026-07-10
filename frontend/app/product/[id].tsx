@@ -63,7 +63,7 @@ export default function ProductDetail() {
     try {
       if (inWishlist) { await api.removeWishlist(id!); setInWishlist(false); }
       else { await api.addWishlist(id!); setInWishlist(true); Haptics.selectionAsync().catch(() => {}); }
-    } catch { }
+    } catch (e: any) { showToast(e.message || 'Could not update wishlist'); }
   };
 
   if (loading || !product) {
@@ -163,7 +163,7 @@ export default function ProductDetail() {
                 <Text style={styles.artisan}>{product.seller_name}</Text>
                 {product.seller_verified && (
                   <View style={styles.verifiedBadge} testID="verified-badge">
-                    <Feather name="check" size={10} color="#fff" />
+                    <Feather name="check" size={10} color={theme.color.onSuccess} />
                     <Text style={styles.verifiedText}>VERIFIED</Text>
                   </View>
                 )}
@@ -269,7 +269,7 @@ const styles = StyleSheet.create({
   artisanNameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 },
   artisan: { color: theme.color.onSurface, fontSize: 14, fontWeight: '500' },
   verifiedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, paddingHorizontal: 6, paddingVertical: 2, borderRadius: theme.radius.sm, backgroundColor: theme.color.success },
-  verifiedText: { color: '#fff', fontSize: 9, letterSpacing: 1 },
+  verifiedText: { color: theme.color.onSuccess, fontSize: 9, letterSpacing: 1 },
   divider: { height: 1, backgroundColor: theme.color.divider, marginTop: theme.spacing.xl },
   section: { fontFamily: theme.font.heading, fontSize: 20, color: theme.color.onSurface, marginTop: theme.spacing.xl, marginBottom: theme.spacing.md, letterSpacing: -0.2 },
   desc: { fontSize: 15, lineHeight: 24, color: theme.color.onSurface },

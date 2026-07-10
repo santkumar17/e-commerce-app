@@ -9,7 +9,10 @@ router = APIRouter(tags=["sellers"])
 
 @router.get("/sellers/{sid}")
 async def public_seller(sid: str):
-    s = await db.users.find_one({"id": sid, "role": "seller"}, {"_id": 0, "password": 0, "email": 0})
+    s = await db.users.find_one(
+        {"id": sid, "role": "seller"},
+        {"_id": 0, "password": 0, "email": 0, "phone": 0, "address": 0},
+    )
     if not s:
         raise HTTPException(404, "Not found")
     products = await db.products.find(

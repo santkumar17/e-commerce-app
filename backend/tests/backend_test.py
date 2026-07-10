@@ -92,6 +92,74 @@ class TestAuth:
         assert r2.status_code == 400
 
 
+@pytest.fixture(scope="class")
+def profile_user(session):
+    """One shared registered account for TestProfileAndPassword — avoids tripping
+    the 5/minute register rate limit by registering fresh per test."""
+    email = f"test_profile_{uuid.uuid4().hex[:8]}@example.com"
+    payload = {"name": "TEST Profile", "email": email, "password": "Passw0rd!", "role": "customer"}
+    r = session.post(f"{API}/auth/register", json=payload, timeout=15)
+    assert r.status_code == 200
+    return {"email": email, "token": r.json()["token"]}
+
+
+class TestProfileAndPassword:
+    """Tests run in definition order and share `profile_user`'s mutating password state,
+    same sequential-fixture pattern as TestSellerAdmin's `created_product_id`."""
+
+    def test_update_me(self, session, profile_user):
+        r = session.put(f"{API}/auth/me", json={
+            "name": "TEST Updated Name",
+            "phone": "555-0100",
+            "bio": "A quiet studio.",
+            "address": {"line1": "1 Main St", "city": "Testville", "state": "TS", "zip": "12345"},
+        }, headers=_auth(profile_user["token"]), timeout=15)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["name"] == "TEST Updated Name"
+        assert d["phone"] == "555-0100"
+        assert d["address"]["city"] == "Testville"
+
+    def test_change_password_wrong_current(self, session, profile_user):
+        r = session.post(f"{API}/auth/change-password", json={
+            "current_password": "wrong", "new_password": "NewPassw0rd!",
+        }, headers=_auth(profile_user["token"]), timeout=15)
+        assert r.status_code == 401
+
+    def test_change_password_success_and_relogin(self, session, profile_user):
+        r = session.post(f"{API}/auth/change-password", json={
+            "current_password": "Passw0rd!", "new_password": "NewPassw0rd!",
+        }, headers=_auth(profile_user["token"]), timeout=15)
+        assert r.status_code == 200
+        # old password no longer works
+        bad = session.post(f"{API}/auth/login", json={"email": profile_user["email"], "password": "Passw0rd!"}, timeout=15)
+        assert bad.status_code == 401
+        # new password works
+        good = session.post(f"{API}/auth/login", json={"email": profile_user["email"], "password": "NewPassw0rd!"}, timeout=15)
+        assert good.status_code == 200
+
+    def test_forgot_and_reset_password(self, session, profile_user):
+        forgot = session.post(f"{API}/auth/forgot-password", json={"email": profile_user["email"]}, timeout=15)
+        assert forgot.status_code == 200
+        token = forgot.json()["reset_token"]
+        reset = session.post(f"{API}/auth/reset-password", json={
+            "reset_token": token, "new_password": "ResetPassw0rd!",
+        }, timeout=15)
+        assert reset.status_code == 200
+        good = session.post(f"{API}/auth/login", json={"email": profile_user["email"], "password": "ResetPassw0rd!"}, timeout=15)
+        assert good.status_code == 200
+
+    def test_forgot_password_unknown_email(self, session):
+        r = session.post(f"{API}/auth/forgot-password", json={"email": "nobody-here@example.com"}, timeout=15)
+        assert r.status_code == 404
+
+    def test_reset_password_bad_token(self, session):
+        r = session.post(f"{API}/auth/reset-password", json={
+            "reset_token": "not-a-real-token", "new_password": "WhateverPass1!",
+        }, timeout=15)
+        assert r.status_code == 400
+
+
 # ---------- Categories & Products ----------
 class TestCatalog:
     def test_categories(self, session):

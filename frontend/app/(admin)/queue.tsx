@@ -6,9 +6,13 @@ import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { api } from '@/src/api';
 import { theme } from '@/src/theme';
 import { NotifBell } from '@/src/components/NotifBell';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
+import { Skeleton } from '@/src/components/Skeleton';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 
 const QUICK_REASONS = [
   'Poor image quality',
@@ -24,6 +28,7 @@ export default function AdminQueue() {
   const [busy, setBusy] = useState<string | null>(null);
   const [rejectItem, setRejectItem] = useState<any>(null);
   const [reason, setReason] = useState('');
+  const [err, setErr] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -33,7 +38,9 @@ export default function AdminQueue() {
 
   const approve = async (pid: string) => {
     setBusy(pid);
-    try { await api.approve(pid); await load(); } finally { setBusy(null); }
+    try { await api.approve(pid); await load(); }
+    catch (e: any) { setErr(e.message || 'Could not approve listing'); }
+    finally { setBusy(null); }
   };
 
   const submitReject = async () => {
@@ -44,21 +51,35 @@ export default function AdminQueue() {
       setRejectItem(null);
       setReason('');
       await load();
-    } finally { setBusy(null); }
+    } catch (e: any) { setErr(e.message || 'Could not reject listing'); }
+    finally { setBusy(null); }
   };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <View style={{ flex: 1 }}>
-          <Text style={styles.kicker}>Admin</Text>
-          <Text style={styles.title}>Pending review</Text>
-          <Text style={styles.count} testID="pending-count">{items.length} awaiting</Text>
-        </View>
-        <NotifBell color={theme.color.onSurface} onDark={false} testID="admin-notif-bell" />
-      </View>
+      <ScreenHeader
+        kicker="Admin"
+        title="Pending review"
+        count={`${items.length} awaiting`}
+        testID="pending-count"
+        right={<NotifBell color={theme.color.onSurface} onDark={false} testID="admin-notif-bell" />}
+      />
+      {err && <Text style={styles.err}>{err}</Text>}
 
-      {loading ? <ActivityIndicator color={theme.color.brand} style={{ marginTop: 40 }} /> : (
+      {loading ? (
+        <View style={{ paddingHorizontal: theme.spacing.xl, gap: theme.spacing.md }}>
+          {[0, 1].map((i) => (
+            <View key={i} style={styles.card}>
+              <Skeleton width={100} height={120} radius={theme.radius.sm} />
+              <View style={{ flex: 1, gap: 8 }}>
+                <Skeleton width="50%" height={10} />
+                <Skeleton width="90%" height={14} />
+                <Skeleton width="40%" height={12} />
+              </View>
+            </View>
+          ))}
+        </View>
+      ) : (
         <FlatList
           data={items}
           keyExtractor={(i) => i.id}
@@ -70,8 +91,8 @@ export default function AdminQueue() {
               <Text style={styles.emptyDim}>No products awaiting review.</Text>
             </View>
           }
-          renderItem={({ item }) => (
-            <View style={styles.card} testID={`review-card-${item.id}`}>
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInUp.delay(Math.min(index, 8) * 50).duration(350)} style={styles.card} testID={`review-card-${item.id}`}>
               <Image source={{ uri: item.images?.[0] }} style={styles.cardImg} contentFit="cover" />
               <View style={styles.cardBody}>
                 <Text style={styles.artisan}>{item.seller_name}</Text>
@@ -79,30 +100,30 @@ export default function AdminQueue() {
                 <Text style={styles.cardPrice}>${item.price.toFixed(0)} · {item.category}</Text>
                 <Text style={styles.cardDesc} numberOfLines={3}>{item.description}</Text>
                 <View style={styles.actions}>
-                  <Pressable
+                  <AnimatedPressable
                     testID={`approve-${item.id}`}
                     onPress={() => approve(item.id)}
                     disabled={busy === item.id}
                     style={styles.approveBtn}
                   >
-                    {busy === item.id ? <ActivityIndicator color="#fff" size="small" /> : (
+                    {busy === item.id ? <ActivityIndicator color={theme.color.onBrandPrimary} size="small" /> : (
                       <>
-                        <Feather name="check" size={14} color="#fff" />
+                        <Feather name="check" size={14} color={theme.color.onBrandPrimary} />
                         <Text style={styles.approveText}>Approve</Text>
                       </>
                     )}
-                  </Pressable>
-                  <Pressable
+                  </AnimatedPressable>
+                  <AnimatedPressable
                     testID={`reject-${item.id}`}
                     onPress={() => setRejectItem(item)}
                     style={styles.rejectBtn}
                   >
                     <Feather name="x" size={14} color={theme.color.error} />
                     <Text style={styles.rejectText}>Reject</Text>
-                  </Pressable>
+                  </AnimatedPressable>
                 </View>
               </View>
-            </View>
+            </Animated.View>
           )}
         />
       )}
@@ -118,14 +139,14 @@ export default function AdminQueue() {
 
             <View style={styles.reasonsRow}>
               {QUICK_REASONS.map((r) => (
-                <Pressable
+                <AnimatedPressable
                   key={r}
                   testID={`reason-${r.slice(0, 8)}`}
                   onPress={() => setReason(r)}
                   style={[styles.reasonChip, reason === r && styles.reasonChipActive]}
                 >
                   <Text style={[styles.reasonText, reason === r && styles.reasonTextActive]}>{r}</Text>
-                </Pressable>
+                </AnimatedPressable>
               ))}
             </View>
 
@@ -138,14 +159,14 @@ export default function AdminQueue() {
               placeholderTextColor={theme.color.muted}
               style={[styles.input, { minHeight: 80, textAlignVertical: 'top' }]}
             />
-            <Pressable
+            <AnimatedPressable
               testID="reject-submit"
               onPress={submitReject}
               disabled={!reason.trim() || !!busy}
               style={[styles.rejectSubmit, (!reason.trim() || !!busy) && { opacity: 0.5 }]}
             >
-              {busy ? <ActivityIndicator color="#fff" /> : <Text style={styles.rejectSubmitText}>Send rejection</Text>}
-            </Pressable>
+              {busy ? <ActivityIndicator color={theme.color.onError} /> : <Text style={styles.rejectSubmitText}>Send rejection</Text>}
+            </AnimatedPressable>
           </SafeAreaView>
         </KeyboardAvoidingView>
       </Modal>
@@ -155,10 +176,7 @@ export default function AdminQueue() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.color.surface },
-  header: { flexDirection: 'row', alignItems: 'flex-start', padding: theme.spacing.xl, paddingBottom: theme.spacing.md },
-  kicker: { fontSize: 11, letterSpacing: 2, color: theme.color.muted },
-  title: { fontFamily: theme.font.heading, fontSize: 30, color: theme.color.onSurface, marginTop: 2 },
-  count: { color: theme.color.muted, marginTop: 4, fontSize: 13 },
+  err: { color: theme.color.error, marginHorizontal: theme.spacing.xl, fontSize: 13 },
   card: { flexDirection: 'row', gap: theme.spacing.md, padding: theme.spacing.md, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border, borderRadius: theme.radius.md, marginBottom: theme.spacing.md },
   cardImg: { width: 100, height: 120, borderRadius: theme.radius.sm, backgroundColor: theme.color.surfaceTertiary },
   cardBody: { flex: 1 },
@@ -168,7 +186,7 @@ const styles = StyleSheet.create({
   cardDesc: { fontSize: 12, color: theme.color.onSurfaceTertiary, marginTop: 6, lineHeight: 16 },
   actions: { flexDirection: 'row', gap: 8, marginTop: theme.spacing.md },
   approveBtn: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: theme.radius.sm, backgroundColor: theme.color.brand },
-  approveText: { color: '#fff', fontSize: 13 },
+  approveText: { color: theme.color.onBrandPrimary, fontSize: 13 },
   rejectBtn: { flex: 1, flexDirection: 'row', gap: 6, alignItems: 'center', justifyContent: 'center', paddingVertical: 10, borderRadius: theme.radius.sm, borderWidth: 1, borderColor: theme.color.error },
   rejectText: { color: theme.color.error, fontSize: 13 },
   empty: { alignItems: 'center', padding: theme.spacing.xxxl, gap: theme.spacing.md },
@@ -187,5 +205,5 @@ const styles = StyleSheet.create({
   reasonTextActive: { color: theme.color.onBrandTertiary },
   input: { borderWidth: 1, borderColor: theme.color.border, borderRadius: theme.radius.sm, paddingHorizontal: 12, paddingVertical: 10, fontSize: 14, color: theme.color.onSurface, marginTop: theme.spacing.md, backgroundColor: theme.color.surface },
   rejectSubmit: { marginTop: theme.spacing.lg, backgroundColor: theme.color.error, paddingVertical: 14, borderRadius: theme.radius.sm, alignItems: 'center' },
-  rejectSubmitText: { color: '#fff', fontSize: 15 },
+  rejectSubmitText: { color: theme.color.onError, fontSize: 15 },
 });

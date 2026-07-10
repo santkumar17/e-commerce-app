@@ -1,12 +1,17 @@
 import { useCallback, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, FlatList } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { Feather } from '@expo/vector-icons';
+import Animated, { FadeInUp } from 'react-native-reanimated';
 import { api } from '@/src/api';
 import { theme } from '@/src/theme';
+import { statusColor } from '@/src/utils/status';
 import { NotifBell } from '@/src/components/NotifBell';
+import { ScreenHeader } from '@/src/components/ScreenHeader';
+import { SkeletonRow } from '@/src/components/Skeleton';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 
 export default function SellerDashboard() {
   const router = useRouter();
@@ -28,18 +33,18 @@ export default function SellerDashboard() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.kicker}>Studio</Text>
-          <Text style={styles.title}>Your listings</Text>
-        </View>
-        <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
-          <NotifBell color={theme.color.onSurface} onDark={false} testID="seller-notif-bell" />
-          <Pressable testID="add-product-btn" onPress={() => router.push('/seller/product-form')} style={styles.addBtn}>
-            <Feather name="plus" size={18} color="#fff" />
-          </Pressable>
-        </View>
-      </View>
+      <ScreenHeader
+        kicker="Studio"
+        title="Your listings"
+        right={
+          <View style={{ flexDirection: 'row', gap: 10, alignItems: 'center' }}>
+            <NotifBell color={theme.color.onSurface} onDark={false} testID="seller-notif-bell" />
+            <AnimatedPressable testID="add-product-btn" onPress={() => router.push('/seller/product-form')} style={styles.addBtn}>
+              <Feather name="plus" size={18} color={theme.color.onBrandPrimary} />
+            </AnimatedPressable>
+          </View>
+        }
+      />
 
       <View style={styles.statsRow}>
         <Stat label="Live" value={counts.approved} color={theme.color.success} testID="stat-approved" />
@@ -48,7 +53,11 @@ export default function SellerDashboard() {
         <Stat label="Rejected" value={counts.rejected} color={theme.color.error} testID="stat-rejected" />
       </View>
 
-      {loading ? <ActivityIndicator color={theme.color.brand} style={{ marginTop: 40 }} /> : (
+      {loading ? (
+        <View style={{ paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.md }}>
+          {[0, 1, 2].map((i) => <SkeletonRow key={i} />)}
+        </View>
+      ) : (
         <FlatList
           data={items}
           keyExtractor={(i) => i.id}
@@ -57,30 +66,32 @@ export default function SellerDashboard() {
             <View style={styles.empty}>
               <Feather name="package" size={32} color={theme.color.muted} />
               <Text style={styles.emptyText}>List your first creation.</Text>
-              <Pressable testID="empty-add-btn" onPress={() => router.push('/seller/product-form')} style={styles.emptyBtn}>
+              <AnimatedPressable testID="empty-add-btn" onPress={() => router.push('/seller/product-form')} style={styles.emptyBtn}>
                 <Text style={styles.emptyBtnText}>Add product</Text>
-              </Pressable>
+              </AnimatedPressable>
             </View>
           }
-          renderItem={({ item }) => (
-            <Pressable
-              testID={`seller-product-${item.id}`}
-              onPress={() => router.push({ pathname: '/seller/product-form', params: { id: item.id } })}
-              style={styles.card}
-            >
-              <Image source={{ uri: item.images?.[0] }} style={styles.cardImg} contentFit="cover" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
-                <Text style={styles.cardPrice}>${item.price.toFixed(0)}</Text>
-                <View style={[styles.badge, statusBg(item.status)]}>
-                  <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
+          renderItem={({ item, index }) => (
+            <Animated.View entering={FadeInUp.delay(Math.min(index, 8) * 40).duration(350)}>
+              <AnimatedPressable
+                testID={`seller-product-${item.id}`}
+                onPress={() => router.push({ pathname: '/seller/product-form', params: { id: item.id } })}
+                style={styles.card}
+              >
+                <Image source={{ uri: item.images?.[0] }} style={styles.cardImg} contentFit="cover" />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardTitle} numberOfLines={2}>{item.title}</Text>
+                  <Text style={styles.cardPrice}>${item.price.toFixed(0)}</Text>
+                  <View style={[styles.badge, statusColor(item.status)]}>
+                    <Text style={styles.badgeText}>{item.status.toUpperCase()}</Text>
+                  </View>
+                  {item.status === 'rejected' && item.rejection_reason ? (
+                    <Text style={styles.rejectMsg}>Feedback: {item.rejection_reason}</Text>
+                  ) : null}
                 </View>
-                {item.status === 'rejected' && item.rejection_reason ? (
-                  <Text style={styles.rejectMsg}>Feedback: {item.rejection_reason}</Text>
-                ) : null}
-              </View>
-              <Feather name="chevron-right" size={18} color={theme.color.muted} />
-            </Pressable>
+                <Feather name="chevron-right" size={18} color={theme.color.muted} />
+              </AnimatedPressable>
+            </Animated.View>
           )}
         />
       )}
@@ -97,19 +108,8 @@ function Stat({ label, value, color, testID }: any) {
   );
 }
 
-function statusBg(s: string) {
-  if (s === 'approved') return { backgroundColor: '#DDEADD' };
-  if (s === 'pending') return { backgroundColor: '#EAE0D0' };
-  if (s === 'rejected') return { backgroundColor: '#F0DADA' };
-  if (s === 'draft') return { backgroundColor: '#E6E1D8' };
-  return { backgroundColor: theme.color.surfaceTertiary };
-}
-
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: theme.color.surface },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', padding: theme.spacing.xl, paddingBottom: theme.spacing.md },
-  kicker: { fontSize: 11, letterSpacing: 2, color: theme.color.muted },
-  title: { fontFamily: theme.font.heading, fontSize: 30, color: theme.color.onSurface, marginTop: 2 },
   addBtn: { width: 44, height: 44, borderRadius: 22, backgroundColor: theme.color.brand, alignItems: 'center', justifyContent: 'center' },
   statsRow: { flexDirection: 'row', gap: theme.spacing.md, paddingHorizontal: theme.spacing.xl, marginTop: theme.spacing.md },
   stat: { flex: 1, padding: theme.spacing.md, borderRadius: theme.radius.md, backgroundColor: theme.color.surfaceSecondary, borderWidth: 1, borderColor: theme.color.border, alignItems: 'center' },
@@ -125,5 +125,5 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', padding: theme.spacing.xxxl, gap: theme.spacing.md },
   emptyText: { color: theme.color.muted, marginTop: theme.spacing.sm },
   emptyBtn: { marginTop: theme.spacing.md, paddingHorizontal: 20, paddingVertical: 12, borderRadius: theme.radius.sm, backgroundColor: theme.color.brand },
-  emptyBtnText: { color: '#fff', fontSize: 14 },
+  emptyBtnText: { color: theme.color.onBrandPrimary, fontSize: 14 },
 });

@@ -33,6 +33,28 @@ def create_token(user_id: str, role: str) -> str:
     return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
 
 
+RESET_TOKEN_PURPOSE = "password_reset"
+
+
+def create_reset_token(user_id: str) -> str:
+    payload = {
+        "sub": user_id,
+        "purpose": RESET_TOKEN_PURPOSE,
+        "exp": datetime.now(timezone.utc) + timedelta(minutes=15),
+    }
+    return jwt.encode(payload, JWT_SECRET, algorithm="HS256")
+
+
+def decode_reset_token(token: str) -> str:
+    try:
+        payload = jwt.decode(token, JWT_SECRET, algorithms=["HS256"])
+    except jwt.PyJWTError:
+        raise HTTPException(400, "Invalid or expired reset link")
+    if payload.get("purpose") != RESET_TOKEN_PURPOSE:
+        raise HTTPException(400, "Invalid reset token")
+    return payload["sub"]
+
+
 async def get_current_user(authorization: Optional[str] = Header(None)):
     if not authorization or not authorization.startswith("Bearer "):
         raise HTTPException(401, "Missing token")

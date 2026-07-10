@@ -9,6 +9,7 @@ import { useRouter } from 'expo-router';
 import Animated, { FadeIn, FadeInDown } from 'react-native-reanimated';
 import { useAuth } from '@/src/auth';
 import { theme } from '@/src/theme';
+import { AnimatedPressable } from '@/src/components/AnimatedPressable';
 
 export default function Login() {
   const router = useRouter();
@@ -33,10 +34,9 @@ export default function Login() {
     }
   };
 
-  const quickFill = (role: 'customer' | 'seller' | 'admin') => {
+  const quickFill = (role: 'customer' | 'seller') => {
     if (role === 'customer') { setEmail('customer@artisan.market'); setPassword('Customer123!'); }
     if (role === 'seller') { setEmail('seller@artisan.market'); setPassword('Seller123!'); }
-    if (role === 'admin') { setEmail('admin@artisan.market'); setPassword('Admin123!'); }
   };
 
   return (
@@ -90,37 +90,37 @@ export default function Login() {
             style={styles.input}
           />
           {err && <Text style={styles.err} testID="login-error">{err}</Text>}
-          <Pressable testID="login-submit-button" onPress={submit} disabled={busy} style={({ pressed }) => [styles.primaryBtn, pressed && { opacity: 0.9 }]}>
-            {busy ? <ActivityIndicator color="#fff" /> : (
-              <>
-                <Text style={styles.primaryBtnText}>Sign in</Text>
-              </>
+          <AnimatedPressable testID="login-submit-button" onPress={submit} disabled={busy} style={styles.primaryBtn}>
+            {busy ? <ActivityIndicator color={theme.color.onBrandPrimary} /> : (
+              <Text style={styles.primaryBtnText}>Sign in</Text>
             )}
+          </AnimatedPressable>
+          <Pressable testID="go-to-forgot-password" onPress={() => router.push('/forgot-password')} style={styles.linkBtn}>
+            <Text style={styles.linkText}>Forgot password?</Text>
           </Pressable>
           <Pressable testID="go-to-register" onPress={() => router.push('/register')} style={styles.linkBtn}>
             <Text style={styles.linkText}>New here? Create an account →</Text>
           </Pressable>
         </Animated.View>
 
-        {/* Demo accounts */}
-        <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.demoBox}>
-          <View style={styles.demoHeader}>
-            <View style={styles.demoDot} />
-            <Text style={styles.demoTitle}>Demo accounts</Text>
-          </View>
-          <View style={styles.demoRow}>
-            <Pressable testID="demo-customer" style={styles.chip} onPress={() => quickFill('customer')}>
-              <Text style={styles.chipText}>Shopper</Text>
-            </Pressable>
-            <Pressable testID="demo-seller" style={styles.chip} onPress={() => quickFill('seller')}>
-              <Text style={styles.chipText}>Artisan</Text>
-            </Pressable>
-            <Pressable testID="demo-admin" style={styles.chip} onPress={() => quickFill('admin')}>
-              <Text style={styles.chipText}>Admin</Text>
-            </Pressable>
-          </View>
-          <Text style={styles.demoHelp}>Tap a role to auto-fill credentials.</Text>
-        </Animated.View>
+        {/* Demo accounts — dev-only, never shown in a production build */}
+        {__DEV__ && (
+          <Animated.View entering={FadeInDown.delay(400).duration(600)} style={styles.demoBox}>
+            <View style={styles.demoHeader}>
+              <View style={styles.demoDot} />
+              <Text style={styles.demoTitle}>Demo accounts</Text>
+            </View>
+            <View style={styles.demoRow}>
+              <AnimatedPressable testID="demo-customer" style={styles.chip} onPress={() => quickFill('customer')}>
+                <Text style={styles.chipText}>Shopper</Text>
+              </AnimatedPressable>
+              <AnimatedPressable testID="demo-seller" style={styles.chip} onPress={() => quickFill('seller')}>
+                <Text style={styles.chipText}>Artisan</Text>
+              </AnimatedPressable>
+            </View>
+            <Text style={styles.demoHelp}>Tap a role to auto-fill credentials.</Text>
+          </Animated.View>
+        )}
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -133,10 +133,10 @@ const styles = StyleSheet.create({
   heroImg: { position: 'absolute', width: '100%', height: '100%' },
   heroScrim: { position: 'absolute', width: '100%', height: '100%' },
   heroContent: { flex: 1, padding: theme.spacing.xl, paddingTop: 80, justifyContent: 'flex-end', gap: 0 },
-  brandKicker: { color: '#fff', fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', opacity: 0.85, marginBottom: 12 },
-  brand: { color: '#fff', fontFamily: theme.font.heading, fontSize: 44, letterSpacing: -0.5 },
+  brandKicker: { color: theme.color.onSurfaceInverse, fontSize: 10, letterSpacing: 2.5, textTransform: 'uppercase', opacity: 0.85, marginBottom: 12 },
+  brand: { color: theme.color.onSurfaceInverse, fontFamily: theme.font.heading, fontSize: 44, letterSpacing: -0.5 },
   brandRule: { width: 40, height: 2, backgroundColor: theme.color.brand, marginVertical: theme.spacing.md, borderRadius: 1 },
-  brandSub: { color: '#fff', opacity: 0.9, fontFamily: theme.font.heading, fontSize: 24, lineHeight: 30, fontStyle: 'italic' },
+  brandSub: { color: theme.color.onSurfaceInverse, opacity: 0.9, fontFamily: theme.font.heading, fontSize: 24, lineHeight: 30, fontStyle: 'italic' },
 
   card: { marginTop: -32, marginHorizontal: theme.spacing.xl, backgroundColor: theme.color.surfaceSecondary, borderRadius: theme.radius.lg, padding: theme.spacing.xl, ...theme.elevation.lift },
   cardTitle: { fontFamily: theme.font.heading, fontSize: 26, color: theme.color.onSurface, letterSpacing: -0.2 },
@@ -146,7 +146,7 @@ const styles = StyleSheet.create({
   input: { borderWidth: 1, borderColor: theme.color.border, borderRadius: theme.radius.sm, paddingHorizontal: theme.spacing.lg, paddingVertical: 14, fontSize: 16, color: theme.color.onSurface, backgroundColor: theme.color.surface },
   err: { color: theme.color.error, marginTop: theme.spacing.md, fontSize: 13 },
   primaryBtn: { marginTop: theme.spacing.xl, backgroundColor: theme.color.brand, borderRadius: theme.radius.sm, paddingVertical: 16, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', gap: 8 },
-  primaryBtnText: { color: '#fff', fontSize: 16, letterSpacing: 0.3 },
+  primaryBtnText: { color: theme.color.onBrandPrimary, fontSize: 16, letterSpacing: 0.3, fontFamily: theme.font.bodyMedium },
   linkBtn: { marginTop: theme.spacing.lg, alignItems: 'center' },
   linkText: { color: theme.color.brand, fontSize: 13 },
 

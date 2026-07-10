@@ -4,11 +4,22 @@ const BASE = process.env.EXPO_PUBLIC_BACKEND_URL;
 
 export type Role = 'customer' | 'seller' | 'admin';
 
+export interface Address {
+  line1: string;
+  city: string;
+  state: string;
+  zip: string;
+}
+
 export interface User {
   id: string;
   name: string;
   email: string;
   role: Role;
+  bio?: string;
+  phone?: string;
+  avatar_url?: string;
+  address?: Address;
 }
 
 let tokenCache: string | null = null;
@@ -69,6 +80,14 @@ export const api = {
   login: (body: { email: string; password: string }) =>
     req('/auth/login', { method: 'POST', body: JSON.stringify(body) }),
   me: () => req('/auth/me'),
+  updateProfile: (body: { name?: string; bio?: string; phone?: string; avatar_url?: string; address?: any }) =>
+    req('/auth/me', { method: 'PUT', body: JSON.stringify(body) }),
+  changePassword: (body: { current_password: string; new_password: string }) =>
+    req('/auth/change-password', { method: 'POST', body: JSON.stringify(body) }),
+  forgotPassword: (email: string) =>
+    req('/auth/forgot-password', { method: 'POST', body: JSON.stringify({ email }) }),
+  resetPassword: (reset_token: string, new_password: string) =>
+    req('/auth/reset-password', { method: 'POST', body: JSON.stringify({ reset_token, new_password }) }),
 
   seed: () => req('/seed', { method: 'POST' }),
   categories: () => req('/categories'),
